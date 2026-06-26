@@ -1,0 +1,60 @@
+# ==============================================================================
+# AlgoRepo Project - Personal Algo Repo Manager
+# File: .gitignore
+# 
+# Copyright (c) 2026 Lyriquee
+# SPDX-License-Identifier: MIT
+# ==============================================================================
+
+# 构建产物
+/build/                  # CMake 默认构建目录
+/cmake-build-*/          # CLion 等 IDE 生成的构建目录
+/CMakeFiles/             # CMake 生成的文件
+/CMakeCache.txt          # CMake 缓存
+/compile_commands.json   # 编译数据库
+Makefile                 # 由 CMake 生成的 Makefile
+
+
+# 编辑器 / IDE 缓存
+.cache/                  # 通用缓存目录（如 clangd 索引）
+.vscode/                 # Visual Studio Code 配置
+.idea/                   # JetBrains CLion 配置
+.vs/                     # Visual Studio 配置
+
+
+# 二进制文件
+*.exe
+*.out
+*.dll
+*.so
+*.a
+*.o                      # 目标文件
+*.obj                    # Windows 目标文件
+*.lib                    # Windows 静态库
+
+
+# 日志文件
+*.log
+
+
+# 运行时数据
+/solutions/              # 题解代码数据
+/.algorepo
+
+
+# 操作系统生成文件
+.DS_Store                # macOS 访达生成的文件夹属性文件
+Thumbs.db                # Windows 资源管理器生成的缩略图缓存
+
+
+# 第三方库构建产物
+third_party/**/build/
+third_party/**/bin/
+third_party/**/lib/
+
+
+# 临时文件 / 备份文件
+*~                       # Linux/Unix 编辑器备份文件（如 Gedit、Vim）
+*.swp                    # Vim 交换文件
+*.bak                    # 通用备份文件
+*.tmp                    # 临时文件

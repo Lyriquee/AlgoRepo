@@ -1,0 +1,30 @@
+*           text=auto
+
+# 这些是文本文件，应统一换行符格式（将CRLF转为LF）
+*.test      text      # 测试用例/测试脚本
+*.c         text      # C 语言源代码
+*.cpp       text      # C++ 语言源代码
+*.h         text      # C/C++ 头文件
+*.txt       text      # 普通文本文档
+*.yml       text      # YAML 配置文件
+*.s79       text      # 自定义格式/硬件配置文件
+*.bat       text      # Windows 批处理脚本
+*.xcl       text      # 自定义扩展配置文件
+*.inc       text      # 包含文件（通用脚本/配置片段）
+*.info      text      # 信息说明文件
+*.md        text      # Markdown 文档
+makefile    text      # Make 编译脚本
+meson.build text      # Meson 构建系统配置文件
+
+
+# 翻译：这些是二进制文件，不应进行格式规范化处理
+*.doc       binary    # Word 文档
+*.docx      binary    # Word 文档
+*.odt       binary    # OpenOffice 文字文档
+*.pdf       binary    # PDF 文档
+*.ewd       binary    # IAR Embedded Workbench 工程文件
+*.eww       binary    # IAR 工作区文件（嵌入式开发常用）
+*.dni       binary    # 设备/硬件配置数据文件
+*.wsdt      binary    # 调试/数据文件
+*.dbgdt     binary    # 调试数据文件
+*.mac       binary    # 宏文件/专用二进制配置

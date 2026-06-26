@@ -1,0 +1,66 @@
+# ==============================================================================
+# AlgoRepo Project - Personal Algo Repo Manager
+# File: .clang-format
+# 
+# Copyright (c) 2026 Lyriquee
+# SPDX-License-Identifier: MIT
+# ==============================================================================
+
+BasedOnStyle: LLVM
+
+# 缩进与空格
+UseTab: Never
+IndentWidth: 4
+MaxEmptyLinesToKeep: 2
+
+# 指针对齐
+PointerAlignment: Right
+
+# 声明与赋值对齐
+AlignConsecutiveDeclarations: true
+AlignConsecutiveAssignments: true
+
+# 尾随注释对齐
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 1
+SpacesBeforeTrailingComments: 2
+
+# switch的case缩进并能在同一行
+IndentCaseLabels: true
+AllowShortCaseLabelsOnASingleLine: true
+
+# 允许短 if 语句（无 else）放在同一行
+AllowShortIfStatementsOnASingleLine: WithoutElse
+
+# 强制在 if 等语句后插入大括号（不用）
+# InsertBraces: true
+
+# 列宽（0=无限制）
+ColumnLimit: 0
+
+# 花括号风格
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: false
+  AfterControlStatement: Never
+AllowShortFunctionsOnASingleLine: None
+
+# Include 管理（关闭）
+IncludeBlocks: Regroup
+SortIncludes: false
+# 自定义分组示例
+IncludeCategories:
+  - Regex: '^<.*\.h>'
+    Priority: 1
+  - Regex: '^".*\.h"'
+    Priority: 2
+
+# 其他对齐与操作符
+AlignEscapedNewlines: Left
+SpaceBeforeParens: ControlStatements
+SeparateDefinitionBlocks: Leave
+
+# C++使用
+AccessModifierOffset: -4
+AllowShortLambdasOnASingleLine: All

@@ -1,0 +1,27 @@
+# ==============================================================================
+# AlgoRepo Project - Personal Algo Repo Manager
+# File: editorconfig
+#
+# Copyright (c) 2026 Lyriquee
+# SPDX-License-Identifier: MIT
+# ==============================================================================
+
+# 这是最顶层的 .editorconfig 文件
+root = true
+
+# 适用于所有语言 / 文件的设置
+[*]
+charset = utf-8
+indent_size = 4
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.txt]
+trim_trailing_whitespace = false
+
+[*.yml]
+indent_size = 2
