@@ -1,2 +1,0 @@
-/usr/bin/ar qc ../lib/libalgo_console.a CMakeFiles/algo_console.dir/console/console_ui.c.o
-/usr/bin/ranlib ../lib/libalgo_console.a

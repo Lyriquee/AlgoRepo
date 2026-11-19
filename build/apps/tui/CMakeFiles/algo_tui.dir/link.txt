@@ -1,2 +1,0 @@
-/usr/bin/ar qc ../../lib/libalgo_tui.a CMakeFiles/algo_tui.dir/tui_run.c.o
-/usr/bin/ranlib ../../lib/libalgo_tui.a

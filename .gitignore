@@ -7,7 +7,7 @@
 # ==============================================================================
 
 # 构建产物
-/build/                  # CMake 默认构建目录
+/build/
 /cmake-build-*/          # CLion 等 IDE 生成的构建目录
 /CMakeFiles/             # CMake 生成的文件
 /CMakeCache.txt          # CMake 缓存

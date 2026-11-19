@@ -1,2 +1,0 @@
-/usr/bin/ar qc ../lib/libalgo_service.a CMakeFiles/algo_service.dir/service/problem_service.c.o CMakeFiles/algo_service.dir/service/problem_query.c.o
-/usr/bin/ranlib ../lib/libalgo_service.a
