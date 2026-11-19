@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.18)
 project(AlgoRepo LANGUAGES C)
 
+
+# 不支持MSVC编译, 虽然后面有MSVC判断
+if(MSVC)
+    message(FATAL_ERROR
+        "MSVC is not supported. Please use MinGW-w64 (GCC)."
+    )
+endif()
+
 # ==============================================================================
 # 全局构建配置
 # ==============================================================================
