@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.18)
 project(AlgoRepo LANGUAGES C)
 
-
-# 不支持MSVC编译, 虽然后面有MSVC判断
+# ==============================================================================
+# 编译器检查(不支持MSVC编译)
+# ==============================================================================
 if(MSVC)
     message(FATAL_ERROR
         "MSVC is not supported. Please use MinGW-w64 (GCC)."
@@ -21,15 +22,23 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # ==============================================================================
+# Release 全局优化
+# ==============================================================================
+if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+    set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG" CACHE STRING
+        "C Release flags" FORCE)
+endif()
+
+# ==============================================================================
 # 全局编译警告
 # ==============================================================================
 add_library(algo_warnings INTERFACE)
-if(MSVC)
-    target_compile_options(algo_warnings INTERFACE /W4 /utf-8)
-    target_compile_definitions(algo_warnings INTERFACE _CRT_SECURE_NO_WARNINGS)
-else()
-    target_compile_options(algo_warnings INTERFACE -Wall -Wextra -Wpedantic -Wno-unused-parameter)
-endif()
+target_compile_options(algo_warnings INTERFACE
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Wno-unused-parameter
+)
 
 # ==============================================================================
 # 全局公共头文件
@@ -37,7 +46,9 @@ endif()
 add_library(algo_headers INTERFACE)
 target_include_directories(algo_headers INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
+# ==============================================================================
 # 分层依赖图
+# ==============================================================================
 #                  表示层           ┐
 #             (apps/cli,tui)        > apps
 #                    │              ┘
@@ -74,19 +85,15 @@ add_executable(algo apps/main.c)
 target_link_libraries(algo PRIVATE algo::cli algo::tui)
 
 # ==============================================================================
-# Release 模式（产物优化与瘦身）
+# Release 符号剥离
 # ==============================================================================
-if(MSVC)
-    target_compile_options(algo PRIVATE $<$<CONFIG:Release>:/Oi /Gy>)
-    target_link_options(algo PRIVATE $<$<CONFIG:Release>:/OPT:REF /OPT:ICF>)
-else()
-    target_link_options(algo PRIVATE $<$<CONFIG:Release>:-s>)
-endif()
+target_link_options(algo PRIVATE
+    $<$<CONFIG:Release>:-s>
+)
 
 # ==============================================================================
 # Unity 单元测试（暂不使用)
 # ==============================================================================
-
 # add_library(unity STATIC third_party/unity/src/unity.c)
 # target_include_directories(unity PUBLIC third_party/unity/src)
 #
