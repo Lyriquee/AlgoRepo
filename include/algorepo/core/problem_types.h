@@ -9,22 +9,15 @@
 #pragma once
 
 
-/* --- Constants ------------------------------------------------------------ */
+/* --- Problem 数据结构限制-------------------------------------------------- */
 
-/* 题目名称最大长度 */
-#define ALGO_MAX_TITLE_LEN 256
-/* 题目描述最大长度 */
-#define ALGO_MAX_DESC_LEN 4096
-/* 个人笔记最大长度 */
-#define ALGO_MAX_NOTES_LEN 4096
-/* 文件路径最大长度 */
-#define ALGO_MAX_PATH_LEN 512
-/* 日期时间字符串最大长度 */
-#define ALGO_MAX_DATETIME_LEN 32
-/* 标签数量上限 */
-#define ALGO_MAX_TAGS 8
-/* 单个标签最大长度 */
-#define ALGO_MAX_TAG_LEN 32
+#define ALGO_MAX_TITLE_LEN      256  // 题目标题最大长度(含'\0')，输入层越界拦截
+#define ALGO_MAX_DESC_LEN       4096 // 题目描述最大长度(含'\0')
+#define ALGO_MAX_NOTES_LEN      8192 // 个人笔记最大长度(仅本地存储)
+#define ALGO_MAX_PATH_LEN       512  // 文件路径最大长度(兼容Windows长路径)
+#define ALGO_MAX_DATETIME_LEN   32   // 时间字符串长度(YYYY-MM-DD HH:MM:SS)
+#define ALGO_MAX_TAGS           8    // 标签数量上限
+#define ALGO_MAX_TAG_LEN        32   // 单个标签最大长度(含'\0')
 
 
 /* --- Status Code ---------------------------------------------------------- */
@@ -106,6 +99,6 @@ const char *algo_difficulty_to_string(Difficulty diff);
 /**
  * @brief 将 Mastery 枚举转换为中文描述字符串。
  *
- * @return 对应的中文描述字符串；未知枚举值返回 "未设置"。
+ * @return 对应的中文描述字符串；未知枚举值返回 "未知"。
  */
 const char *algo_mastery_to_string(Mastery mastery);

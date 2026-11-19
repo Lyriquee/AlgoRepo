@@ -1,0 +1,1 @@
+/usr/bin/cc -O3 -DNDEBUG -s CMakeFiles/algo.dir/apps/main.c.o -o bin/algo  lib/libalgo_cli.a lib/libalgo_tui.a lib/libalgo_service.a lib/libalgo_runtime.a lib/libalgo_config.a lib/libalgo_storage.a lib/libalgo_core.a lib/libalgo_console.a lib/libalgo_utils.a 

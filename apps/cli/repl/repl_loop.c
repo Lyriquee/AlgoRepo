@@ -18,14 +18,14 @@
 
 /* --- 信号处理 ------------------------------------------------------------- */
 
-/** @brief SIGINT 中断标志（异步安全）。 */
+/* SIGINT 中断标志（异步安全） */
 static volatile sig_atomic_t g_interrupted = 0;
 
-/**
- * @brief REPL 模式 SIGINT 信号处理器。
+/*
+ * REPL 模式 SIGINT 信号处理器。
  *
  * 设置中断标志并重新注册自身。主循环轮询该标志以决定是否退出，
- * 不在此处执行任何非异步安全操作。
+ * 不在此处执行任何非异步安全操作
  */
 static void repl_sigint_handler(int sig) {
     (void)sig;
@@ -38,10 +38,18 @@ static void repl_sigint_handler(int sig) {
 /* 进入 REPL 交互模式 */
 AlgoStatus cli_enter_repl(RuntimeContext *ctx) {
     AlgoStatus st = runtime_load(ctx);
+    if (st == ALGO_ERR_NOT_FOUND && !ctx->global_mode) {
+        console_log_error("当前目录不是一个 AlgoRepo 工作区");
+        console_log_info("请先运行 \"algo init\" 初始化工作区，或运行 'algo -g' 进入全局交互模式");
+        return st;
+    }
     if (st != ALGO_SUCCESS) {
         console_log_fatal("题库数据加载失败");
         return st;
     }
+
+    /* 根据配置项设置颜色模式（与直出模式行为一致） */
+    if (!ctx->no_color) console_set_color_mode(ctx->config.color);
 
     repl_loop_run(ctx);
     return ALGO_SUCCESS;

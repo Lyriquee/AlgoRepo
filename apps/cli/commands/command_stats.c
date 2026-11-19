@@ -16,7 +16,6 @@
 #include <algorepo/service/problem_query.h>
 #include <algorepo/utils/utils_str.h>
 
-#include "command.h"
 #include "command_common.h"
 #include "views/problem_view.h"
 
@@ -25,6 +24,7 @@
 
 static void print_bar_difficulty(Difficulty diff, size_t count, size_t total, int bar_width);
 static void print_bar_mastery(Mastery m, size_t count, size_t total, int bar_width);
+static int  str_display_width(const char *s);
 
 
 /* --- 公开接口实现 --------------------------------------------------------- */
@@ -123,10 +123,23 @@ AlgoStatus cmd_stats(int argc, char *argv[], RuntimeContext *ctx) {
     if (tag_used > 0) {
         console_print_title("\n--- 高频标签 (Top Tags) ----------------------------");
         console_print_newline();
+        /* 表头 */
+        console_print_spaces(2);
+        console_print_role(COLOR_ROLE_PRIMARY, "标签");
+        console_print_spaces(18);
+        console_print_role(COLOR_ROLE_PRIMARY, "数量\n");
+        console_print_spaces(2);
+        console_print_role(COLOR_ROLE_DIVIDER, "────────────────────");
+        console_print_spaces(2);
+        console_print_role(COLOR_ROLE_DIVIDER, "────\n");
+        /* 数据行：补齐显示宽度使计数值对齐 */
         for (size_t i = 0; i < tag_used && i < 8; i++) {
+            int dw = str_display_width(tag_names[i]);
+            int pad = (dw < 22) ? (22 - dw) : 1;
             console_print_spaces(2);
-            console_print_role(COLOR_ROLE_TAG, "%-20s", tag_names[i]);
-            console_print_role(COLOR_ROLE_VALUE, " %llu\n",
+            console_print_role(COLOR_ROLE_TAG, "%s", tag_names[i]);
+            console_print_spaces(pad);
+            console_print_role(COLOR_ROLE_VALUE, "%llu\n",
                                (unsigned long long)tag_counts[i]);
         }
     }
@@ -166,4 +179,35 @@ static void print_bar_mastery(Mastery m, size_t count, size_t total, int bar_wid
         else            console_print_role(COLOR_ROLE_BAR_EMPTY, "-");
     }
     console_print_role(COLOR_ROLE_VALUE, "]\n");
+}
+
+/* 计算 UTF-8 字符串的终端显示宽度（ASCII=1，CJK/全角=2） */
+static int str_display_width(const char *s) {
+    if (!s) return 0;
+    int width = 0;
+    while (*s) {
+        unsigned char c = (unsigned char)*s;
+        if (c < 0x80) {
+            /* ASCII：单字节，显示宽度 1 */
+            width++;
+            s++;
+        } else if ((c & 0xE0) == 0xC0) {
+            /* 双字节 UTF-8 序列（Latin 扩展等），宽度 1 */
+            width++;
+            s += 2;
+        } else if ((c & 0xF0) == 0xE0) {
+            /* 三字节 UTF-8 序列（CJK 汉字等），宽度 2 */
+            width += 2;
+            s += 3;
+        } else if ((c & 0xF8) == 0xF0) {
+            /* 四字节 UTF-8 序列（Emoji 等），宽度 2 */
+            width += 2;
+            s += 4;
+        } else {
+            /* 非法序列，跳过 */
+            width++;
+            s++;
+        }
+    }
+    return width;
 }

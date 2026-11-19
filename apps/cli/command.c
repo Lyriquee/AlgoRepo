@@ -60,10 +60,10 @@ static const int CORE_COUNT =
  * @brief REPL 专属命令表（仅交互式 Shell 内可用）。
  */
 static const Command REPL_COMMANDS[] = {
-    {"global", "g", false, cmd_global, help_global, "切换至全局题库模式"},
-    {"local",  "l", false, cmd_local,  help_local,  "切换至本地工作区模式"},
-    {"save",   "w", true,  cmd_save,   help_save,   "手动将内存数据持久化落盘"},
-    {"clear",  "c", false, cmd_clear,  help_clear,  "清除终端屏幕显示"},
+    {"global", ":g", false, cmd_global, help_global, "切换至全局题库模式"},
+    {"local",  ":l", false, cmd_local,  help_local,  "切换至本地工作区模式"},
+    {"save",   ":w", true,  cmd_save,   help_save,   "手动将内存数据持久化落盘"},
+    {"clear",  ":c", false, cmd_clear,  help_clear,  "清除终端屏幕显示"},
 };
 
 static const int REPL_COUNT =

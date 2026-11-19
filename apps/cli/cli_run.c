@@ -15,6 +15,9 @@
 
 #include <algorepo/runtime/runtime.h>
 #include <algorepo/console/console_ui.h>
+#include <algorepo/utils/utils_fs.h>
+#include <algorepo/utils/utils_compat.h>
+#include <algorepo/utils/utils_str.h>
 
 #include "command.h"
 #include "repl/repl_loop.h"
@@ -76,6 +79,68 @@ int cli_run(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
         filtered[filtered_count++] = argv[i];
+    }
+
+    // 安全拦截：家目录下禁止无 -g 的操作命令（help/version 及 -h 查询豁免）
+    if (!global_mode) {
+        // 检查是否为 help/version/带 -h 的非操作场景
+        bool is_safe = false;
+        if (filtered_count >= 1) {
+            if (strcmp(filtered[0], "help") == 0 || strcmp(filtered[0], "h") == 0 ||
+                strcmp(filtered[0], "version") == 0 || strcmp(filtered[0], "v") == 0) {
+                is_safe = true;
+            }
+        }
+        // 任意参数位置出现 -h / --help 也视为安全查询
+        for (int i = 0; i < filtered_count && !is_safe; i++) {
+            if (cli_is_help_option(filtered[i])) is_safe = true;
+        }
+
+        if (!is_safe) {
+            char cwd[ALGO_MAX_PATH_LEN];
+            if (utils_compat_getcwd(cwd, sizeof(cwd))) {
+                char home[ALGO_MAX_PATH_LEN];
+                if (utils_compat_get_user_home(home, sizeof(home)) &&
+                    strcmp(cwd, home) == 0) {
+                    console_log_error("安全拦截：家目录路径仅支持全局模式");
+                    console_log_info("请在执行命令时追加 -g 参数以启用全局题库\n");
+                    console_print_muted("示例:\n");
+                    console_print_muted("   algo -g      进入全局交互 REPL\n");
+                    console_print_muted("   algo -g add  添加全局算法题目\n");
+                    return EXIT_FAILURE;
+                }
+            }
+        }
+    }
+
+    // 本地 REPL 模式：提前检查是否为有效工作区
+    if (filtered_count < 1 && !global_mode) {
+        char cwd[ALGO_MAX_PATH_LEN];
+        if (utils_compat_getcwd(cwd, sizeof(cwd))) {
+            char home[ALGO_MAX_PATH_LEN] = {0};
+            utils_compat_get_user_home(home, sizeof(home));
+
+            bool found = false;
+            char search[ALGO_MAX_PATH_LEN];
+            utils_strcpy_safe(search, cwd, sizeof(search));
+            while (1) {
+                /* 到达家目录边界：不再向上查找，家目录 .algorepo 属于全局而非本地工作区 */
+                if (home[0] && strcmp(search, home) == 0) break;
+
+                char test_path[ALGO_MAX_PATH_LEN];
+                int w = snprintf(test_path, sizeof(test_path), "%s/%s", search, ALGO_META_DIR);
+                if (w < 0 || (size_t)w >= sizeof(test_path)) break;
+                if (utils_compat_path_exists(test_path)) { found = true; break; }
+                char *slash = utils_compat_get_last_slash(search);
+                if (!slash || slash == search || (slash - search == 2 && search[1] == ':')) break;
+                *slash = '\0';
+            }
+            if (!found) {
+                console_log_error("当前目录不是一个 AlgoRepo 工作区");
+                console_log_info("请先运行 \"algo init\" 初始化工作区，或运行 'algo -g' 进入全局交互模式");
+                return EXIT_FAILURE;
+            }
+        }
     }
 
     // 统一生命周期起点

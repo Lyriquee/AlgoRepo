@@ -9,13 +9,9 @@
 #include "command_show.h"
 
 #include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include <algorepo/console/console_ui.h>
 
-#include "command.h"
 #include "command_common.h"
 #include "views/problem_view.h"
 
@@ -88,7 +84,7 @@ AlgoStatus cmd_show(int argc, char *argv[], RuntimeContext *ctx) {
         }
 
         if (show_all) {
-            problem_view_print_detail_all(p);
+            problem_view_print_detail(p);
             problem_view_print_code(p, effective_head, tail_n);
         } else if (show_code) {
             problem_view_print_summary(p);

@@ -129,6 +129,22 @@ bool utils_compat_get_user_home(char *buf, size_t size);
  */
 AlgoStatus utils_compat_remove_file(const char *path);
 
+/**
+ * @brief 跨平台启动编辑器打开指定文件，并等待编辑器退出。
+ *
+ * Windows 端通过 CreateProcessW 直接启动编辑器进程，绕过 cmd.exe，
+ * 避免命令解释器的转义问题。POSIX 端通过 system() 调用。
+ *
+ * @param editor 编辑器命令（可执行文件名或路径）。
+ * @param path   待打开的文件的完整路径。
+ * @return
+ * - ALGO_SUCCESS         编辑器正常退出（退出码 0）。
+ * - ALGO_ERR_NOT_FOUND   编辑器可执行文件未找到。
+ * - ALGO_ERR_UNKNOWN     编辑器异常退出或启动失败。
+ * - ALGO_ERR_ARG         参数为 NULL 或空串。
+ */
+AlgoStatus utils_compat_open_editor(const char *editor, const char *path);
+
 /* --- Terminal Detection ---------------------------------------------------- */
 
 /**

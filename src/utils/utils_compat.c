@@ -17,9 +17,8 @@
 
 #include <algorepo/utils/utils_str.h>
 
-/* ==========================================================================
- * 内部私有状态
- * ========================================================================== */
+
+/* --- 内部私有状态 --------------------------------------------------------- */
 
 #ifdef _WIN32
 
@@ -33,11 +32,9 @@
 static char **g_utf8_argv = NULL;
 static int    g_argc      = 0;
 
-#endif /* _WIN32 */
+#endif // _WIN32
 
-/* ==========================================================================
- * 公开接口实现 — Windows
- * ========================================================================== */
+/* --- 公开接口实现 Windows ------------------------------------------------- */
 
 #ifdef _WIN32
 
@@ -219,9 +216,67 @@ AlgoStatus utils_compat_remove_file(const char *path) {
     return ok ? ALGO_SUCCESS : ALGO_ERR_FILE;
 }
 
-/* ==========================================================================
- * 公开接口实现 — POSIX (Linux / macOS)
- * ========================================================================== */
+/* 跨平台编辑器启动：通过 CreateProcessW 绕过 cmd.exe 转义层 */
+AlgoStatus utils_compat_open_editor(const char *editor, const char *path) {
+    if (!editor || editor[0] == '\0' || !path || path[0] == '\0')
+        return ALGO_ERR_ARG;
+
+    /* 构建命令行：编辑器路径 + 空格 + 双引号包裹的文件路径
+     * 编辑器本身也可能是含空格的路径（如 C:\Program Files\...），
+     * 因此统一对编辑器也用双引号包裹。 */
+    char cmd_line[ALGO_MAX_PATH_LEN * 2 + 64];
+    int n = snprintf(cmd_line, sizeof(cmd_line), "\"%s\" \"%s\"", editor, path);
+    if (n < 0 || (size_t)n >= sizeof(cmd_line)) return ALGO_ERR_RANGE;
+
+    /* 转为宽字符串供 CreateProcessW 使用 */
+    int cmd_len = MultiByteToWideChar(CP_UTF8, 0, cmd_line, -1, NULL, 0);
+    if (cmd_len <= 0) return ALGO_ERR_UNKNOWN;
+
+    wchar_t *w_cmd = (wchar_t *)malloc((size_t)cmd_len * sizeof(wchar_t));
+    if (!w_cmd) return ALGO_ERR_MEM;
+
+    MultiByteToWideChar(CP_UTF8, 0, cmd_line, -1, w_cmd, cmd_len);
+
+    STARTUPINFOW si = {0};
+    si.cb           = sizeof(si);
+    si.dwFlags      = STARTF_USESHOWWINDOW;
+    si.wShowWindow  = SW_SHOWNORMAL;
+
+    PROCESS_INFORMATION pi = {0};
+
+    BOOL ok = CreateProcessW(
+        NULL,        /* lpApplicationName — NULL 表示从 lpCommandLine 解析 */
+        w_cmd,       /* lpCommandLine — 可执行文件 + 参数 */
+        NULL, NULL,  /* 进程/线程安全属性：默认 */
+        FALSE,       /* 不继承句柄 */
+        0,           /* 创建标志：默认 */
+        NULL, NULL,  /* 环境变量/工作目录：继承 */
+        &si, &pi);
+
+    free(w_cmd);
+
+    if (!ok) {
+        DWORD err = GetLastError();
+        if (err == ERROR_FILE_NOT_FOUND || err == ERROR_PATH_NOT_FOUND) {
+            return ALGO_ERR_NOT_FOUND;
+        }
+        return ALGO_ERR_UNKNOWN;
+    }
+
+    /* 阻塞等待编辑器退出 */
+    WaitForSingleObject(pi.hProcess, INFINITE);
+
+    DWORD exit_code = 0;
+    GetExitCodeProcess(pi.hProcess, &exit_code);
+
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+
+    return (exit_code == 0) ? ALGO_SUCCESS : ALGO_ERR_UNKNOWN;
+}
+
+
+/* --- 公开接口实现 POSIX (Linux / macOS) ----------------------------------- */
 
 #else
 
@@ -277,11 +332,25 @@ AlgoStatus utils_compat_remove_file(const char *path) {
     return (remove(path) == 0) ? ALGO_SUCCESS : ALGO_ERR_FILE;
 }
 
+/* 跨平台编辑器启动：POSIX 平台通过 system() 调用 shell 启动编辑器 */
+AlgoStatus utils_compat_open_editor(const char *editor, const char *path) {
+    if (!editor || editor[0] == '\0' || !path || path[0] == '\0')
+        return ALGO_ERR_ARG;
+
+    char cmd[ALGO_MAX_PATH_LEN * 2 + 64];
+    int n = snprintf(cmd, sizeof(cmd), "%s \"%s\"", editor, path);
+    if (n < 0 || (size_t)n >= sizeof(cmd)) return ALGO_ERR_RANGE;
+
+    int ret = system(cmd);
+    if (ret == -1) return ALGO_ERR_UNKNOWN;
+    if (ret != 0) return ALGO_ERR_UNKNOWN;
+    return ALGO_SUCCESS;
+}
+
 #endif
 
-/* ==========================================================================
- * 公开接口实现 — 广域跨平台函数
- * ========================================================================== */
+
+/* --- 公开接口实现 广域跨平台函数 ------------------------------------------ */
 
 /* 统一提取路径中最后一个目录分隔符指针（同时识别 / 和 \） */
 char *utils_compat_get_last_slash(char *path) {

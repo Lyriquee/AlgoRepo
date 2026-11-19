@@ -8,12 +8,9 @@
 
 #include "command_help.h"
 
-#include <stdio.h>
-
 #include <algorepo/storage/storage_file.h>
 #include <algorepo/console/console_ui.h>
 
-#include "command.h"
 #include "views/help_view.h"
 
 /* 显示 help 命令自身的帮助信息 */

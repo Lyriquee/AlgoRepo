@@ -1,0 +1,2 @@
+/usr/bin/ar qc ../lib/libalgo_core.a CMakeFiles/algo_core.dir/core/problem_types.c.o CMakeFiles/algo_core.dir/core/problem.c.o CMakeFiles/algo_core.dir/core/problem_collection.c.o
+/usr/bin/ranlib ../lib/libalgo_core.a

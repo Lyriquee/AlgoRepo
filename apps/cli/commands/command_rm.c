@@ -13,7 +13,6 @@
 
 #include <algorepo/console/console_ui.h>
 #include <algorepo/service/problem_service.h>
-#include "command.h"
 #include "command_common.h"
 
 /* 执行删除题目命令，支持空格分隔批量 ID */
@@ -84,7 +83,9 @@ AlgoStatus cmd_rm(int argc, char *argv[], RuntimeContext *ctx) {
         deleted++;
     }
 
-    console_log_success("已删除 %d 道题目", deleted);
+    if (deleted > 0) {
+        console_log_success("已删除 %d 道题目", deleted);
+    }
     return ALGO_SUCCESS;
 }
 

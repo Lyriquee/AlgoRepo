@@ -15,6 +15,7 @@
 #include <algorepo/console/console_ui.h>
 #include <algorepo/storage/storage.h>
 #include <algorepo/utils/utils_compat.h>
+#include <algorepo/utils/utils_fs.h>
 #include <algorepo/utils/utils_str.h>
 
 
@@ -30,7 +31,7 @@ AlgoStatus cmd_global(int argc, char *argv[], RuntimeContext *ctx) {
     (void)argc; (void)argv;
 
     if (ctx->global_mode) {
-        console_log_info("  已在全局题库模式下");
+        console_log_info("已在全局题库模式下");
         return ALGO_SUCCESS;
     }
 
@@ -39,6 +40,20 @@ AlgoStatus cmd_global(int argc, char *argv[], RuntimeContext *ctx) {
     ctx->global_mode = true;
     utils_strcpy_safe(ctx->workspace_root, ctx->home_dir,
                       sizeof(ctx->workspace_root));
+
+    // 重新装载全局配置（丢弃本地配置中的 db_path 等覆盖值）
+    char global_config_path[ALGO_MAX_PATH_LEN];
+    int w = snprintf(global_config_path, sizeof(global_config_path),
+                     "%s/%s/%s", ctx->home_dir, ALGO_META_DIR, ALGO_CONFIG_FILENAME);
+    if (w < 0 || (size_t)w >= sizeof(global_config_path)) return ALGO_ERR_RANGE;
+    utils_path_normalize_separators(global_config_path);
+
+    config_init(&ctx->config);
+    if (config_load(&ctx->config, global_config_path) != ALGO_SUCCESS) {
+        config_init(&ctx->config);
+    }
+
+    if (!ctx->no_color) console_set_color_mode(ctx->config.color);
     runtime_refresh_path_cache(ctx);
     // 确保全局目录存在后装载全局数据库
     utils_compat_make_dir(ctx->solutions_path);
@@ -53,17 +68,90 @@ AlgoStatus cmd_local(int argc, char *argv[], RuntimeContext *ctx) {
     (void)argc; (void)argv;
 
     if (!ctx->global_mode) {
-        console_log_info("  已在本地工作区模式下");
+        console_log_info("已在本地工作区模式下");
         return ALGO_SUCCESS;
     }
 
     // 先保存当前数据再切换
     runtime_save_db(ctx);
     ctx->global_mode = false;
-    // 用当前工作目录或初始工作区根目录恢复本地路径
+
+    // 从当前目录向上查找本地工作区根目录
     char cwd[ALGO_MAX_PATH_LEN] = {0};
-    if (utils_compat_getcwd(cwd, sizeof(cwd)))
-        utils_strcpy_safe(ctx->workspace_root, cwd, sizeof(ctx->workspace_root));
+    if (!utils_compat_getcwd(cwd, sizeof(cwd))) {
+        console_log_error("无法获取当前工作目录");
+        ctx->global_mode = true;
+        return ALGO_ERR_FILE;
+    }
+
+    bool found = false;
+    char search[ALGO_MAX_PATH_LEN];
+    utils_strcpy_safe(search, cwd, sizeof(search));
+    char home[ALGO_MAX_PATH_LEN] = {0};
+    utils_compat_get_user_home(home, sizeof(home));
+
+    while (1) {
+        if (home[0] && strcmp(search, home) == 0) break;
+
+        char test_path[ALGO_MAX_PATH_LEN];
+        int w = snprintf(test_path, sizeof(test_path), "%s/%s", search, ALGO_META_DIR);
+        if (w < 0 || (size_t)w >= sizeof(test_path)) break;
+        if (utils_compat_path_exists(test_path)) {
+            utils_strcpy_safe(ctx->workspace_root, search, sizeof(ctx->workspace_root));
+            found = true;
+            break;
+        }
+        char *slash = utils_compat_get_last_slash(search);
+        if (!slash || slash == search || (slash - search == 2 && search[1] == ':')) break;
+        *slash = '\0';
+    }
+
+    if (!found) {
+        console_log_error("当前目录未找到本地工作区（.algorepo），无法切回本地模式");
+        ctx->global_mode = true;
+        return ALGO_ERR_NOT_FOUND;
+    }
+
+    // 重新装载配置：全局基底 + 本地覆盖合并
+    char global_config_path[ALGO_MAX_PATH_LEN];
+    int gw = snprintf(global_config_path, sizeof(global_config_path),
+                      "%s/%s/%s", ctx->home_dir, ALGO_META_DIR, ALGO_CONFIG_FILENAME);
+    if (gw < 0 || (size_t)gw >= sizeof(global_config_path)) {
+        ctx->global_mode = true;
+        return ALGO_ERR_RANGE;
+    }
+    utils_path_normalize_separators(global_config_path);
+
+    AlgoConfig global_cfg;
+    config_init(&global_cfg);
+    if (config_load(&global_cfg, global_config_path) != ALGO_SUCCESS) {
+        config_init(&global_cfg);
+    }
+
+    AlgoConfig local_cfg;
+    config_init_empty(&local_cfg);
+    char local_config_path[ALGO_MAX_PATH_LEN];
+    int lw = snprintf(local_config_path, sizeof(local_config_path),
+                      "%s/%s/%s", ctx->workspace_root, ALGO_META_DIR, ALGO_CONFIG_FILENAME);
+    if (lw < 0 || (size_t)lw >= sizeof(local_config_path)) {
+        ctx->global_mode = true;
+        return ALGO_ERR_RANGE;
+    }
+    utils_path_normalize_separators(local_config_path);
+
+    if (config_load(&local_cfg, local_config_path) != ALGO_SUCCESS) {
+        config_init_empty(&local_cfg);
+        utils_strcpy_safe(local_cfg.db_path,
+                         ALGO_META_DIR "/" ALGO_DB_FILENAME,
+                         sizeof(local_cfg.db_path));
+        utils_strcpy_safe(local_cfg.solutions_path,
+                         ALGO_SOLUTIONS_DIR,
+                         sizeof(local_cfg.solutions_path));
+        config_save(&local_cfg, local_config_path);
+    }
+    config_merge(&ctx->config, &local_cfg, &global_cfg);
+
+    if (!ctx->no_color) console_set_color_mode(ctx->config.color);
     runtime_refresh_path_cache(ctx);
     // 确保本地目录存在后装载本地数据库
     utils_compat_make_dir(ctx->solutions_path);
@@ -162,6 +250,12 @@ int repl_cmd_dispatch(RuntimeContext *ctx, const char *line) {
     if (!cmd) {
         console_log_error("未知命令: \"%s\"，输入 h 或 help 查看可用命令",
                           argv[0]);
+        return ALGO_ERR_ARG;
+    }
+
+    /* REPL 模式下禁止执行 init 命令 */
+    if (strcmp(cmd->name, "init") == 0) {
+        console_log_error("REPL 模式下禁止执行 \"init\" 命令, 请退出 REPL 后在 Shell 中执行");
         return ALGO_ERR_ARG;
     }
 

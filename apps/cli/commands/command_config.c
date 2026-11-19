@@ -15,7 +15,6 @@
 #include <algorepo/console/console_ui.h>
 #include <algorepo/utils/utils_str.h>
 
-#include "command.h"
 #include "command_common.h"
 
 
@@ -24,8 +23,6 @@
 static AlgoStatus  save_current_config(RuntimeContext *ctx, const char *changed_key);
 static const char *auto_backup_str(int val);
 static const char *backup_count_str(int val);
-static const char *path_str(const char *val);
-
 
 /* --- 公开接口实现 --------------------------------------------------------- */
 
@@ -40,13 +37,14 @@ AlgoStatus cmd_config(int argc, char *argv[], RuntimeContext *ctx) {
 
     if (strcmp(sub, "list") == 0 || strcmp(sub, "ls") == 0) {
         console_print_title("当前配置项:");
-        console_print_kv("editor", ctx->config.editor);
-        console_print_kv("default_language", ctx->config.default_language);
-        console_print_kv("color", ctx->config.color);
-        console_print_kv("auto_backup", auto_backup_str(ctx->config.auto_backup));
-        console_print_kv("backup_count", backup_count_str(ctx->config.backup_count));
-        console_print_kv("db_path", path_str(ctx->config.db_path));
-        console_print_kv("solutions_path", path_str(ctx->config.solutions_path));
+        console_print_kv("  editor", ctx->config.editor);
+        console_print_kv("  default_language", ctx->config.default_language);
+        console_print_kv("  color", ctx->config.color);
+        console_print_kv("  auto_backup", auto_backup_str(ctx->config.auto_backup));
+        console_print_kv("  backup_count", backup_count_str(ctx->config.backup_count));
+        // 显示运行时解析后的完整路径而非配置原始值
+        console_print_kv("  db_path", ctx->db_path);
+        console_print_kv("  solutions_path", ctx->solutions_path);
         return ALGO_SUCCESS;
     }
 
@@ -94,8 +92,18 @@ AlgoStatus cmd_config(int argc, char *argv[], RuntimeContext *ctx) {
         } else if (strcmp(key, "backup_count") == 0) {
             ctx->config.backup_count = (value[0] != '\0') ? atoi(value) : 0;
         } else if (strcmp(key, "db_path") == 0) {
+            if (strcmp(value, "..") == 0 || strcmp(value, ".") == 0 ||
+                value[0] == '~') {
+                console_log_error("无效路径: \"%s\"，不允许使用 \"..\"、\".\" 或 \"~\" 作为路径值", value);
+                return ALGO_ERR_ARG;
+            }
             utils_strcpy_safe(ctx->config.db_path, value, sizeof(ctx->config.db_path));
         } else if (strcmp(key, "solutions_path") == 0) {
+            if (strcmp(value, "..") == 0 || strcmp(value, ".") == 0 ||
+                value[0] == '~') {
+                console_log_error("无效路径: \"%s\"，不允许使用 \"..\"、\".\" 或 \"~\" 作为路径值", value);
+                return ALGO_ERR_ARG;
+            }
             utils_strcpy_safe(ctx->config.solutions_path, value, sizeof(ctx->config.solutions_path));
         } else {
             console_log_error("未知配置键: %s", key);
@@ -225,7 +233,3 @@ static const char *backup_count_str(int val) {
     return buf;
 }
 
-/* 格式化路径显示值 */
-static const char *path_str(const char *val) {
-    return (val && val[0]) ? val : "(默认)";
-}

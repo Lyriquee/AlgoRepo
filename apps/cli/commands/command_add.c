@@ -19,7 +19,6 @@
 #include <algorepo/utils/utils_str.h>
 #include <algorepo/utils/utils_fs.h>
 
-#include "command.h"
 #include "command_common.h"
 #include "views/wizard_view.h"
 
@@ -61,7 +60,7 @@ AlgoStatus cmd_add(int argc, char *argv[], RuntimeContext *ctx) {
             case 'd':
                 status = parse_difficulty(optarg, &value);
                 if (status == ALGO_SUCCESS) p.diff = (Difficulty)value;
-                else console_log_error("无效难度: %s，请使用 0-4 或中文名称", optarg);
+                else console_log_error("无效难度: %s, 请使用 0-4 或中文名称", optarg);
                 break;
             case 'm':
                 status = parse_mastery(optarg, &value);
@@ -125,7 +124,7 @@ AlgoStatus cmd_add(int argc, char *argv[], RuntimeContext *ctx) {
 
     // 交互模式
     if (!batch_mode) {
-        AlgoStatus status = wizard_fill_problem(&p);
+        AlgoStatus status = wizard_fill_problem(&p, ctx);
         if (status != ALGO_SUCCESS) return status;
     }
 
@@ -165,11 +164,13 @@ AlgoStatus cmd_add(int argc, char *argv[], RuntimeContext *ctx) {
                 bool open_editor = false;
                 AlgoStatus cf = console_confirm("是否使用编辑器打开文件?", &open_editor);
                 if (cf == ALGO_SUCCESS && open_editor) {
-                    char cmd[ALGO_MAX_PATH_LEN * 2 + 64];
-                    snprintf(cmd, sizeof(cmd), "%s \"%s\"", ctx->config.editor, source_file);
-                    int ret = system(cmd);
-                    if (ret != 0) {
-                        console_log_warn("编辑器返回异常状态: %d", ret);
+                    AlgoStatus es = utils_compat_open_editor(ctx->config.editor, source_file);
+                    if (es == ALGO_ERR_NOT_FOUND) {
+                        console_log_warn("未找到编辑器 \"%s\"，请通过 \"algo config set editor <命令>\" 设置",
+                                         ctx->config.editor);
+                    } else if (es != ALGO_SUCCESS) {
+                        console_log_warn("编辑器返回异常状态，请检查编辑器命令是否正确: %s",
+                                         ctx->config.editor);
                     }
                 }
             } else {
@@ -194,17 +195,17 @@ void help_add(void) {
     help_view_print_usage("add", "[options] <source-file>");
     help_view_print_description("添加新题目到本地题库, 支持通过命令行选项直接指定, 或省略参数以进入交互式向导补全");
     help_view_print_help_section("选项:");
-    help_view_print_help_option("-h, --help",           NULL,      "显示此帮助信息");
-    help_view_print_help_option("-t, --title",          "<str>",   "题目标题，必填或交互输入");
-    help_view_print_help_option("-D, --desc",           "<str>",   "题目描述");
-    help_view_print_help_option("-d, --diff",           "<0-4|中文>", "  难度：0未知 1简单 2中等 3困难 4极难(支持中文)");
-    help_view_print_help_option("-m, --mastery",        "<0-4|中文>", "  掌握度：0未设置 1了解 2熟悉 3掌握 4精通(支持中文)");
-    help_view_print_help_option("-g, --tags",           "<a,b>",   "标签，最多 8 个");
-    help_view_print_help_option("-n, --notes",          "<str>",   "笔记");
-    help_view_print_help_option("-c, --create",         NULL,      "无需源文件，自动创建");
-    help_view_print_help_option("-l, --lang",           "<str>",   "显式指定编程语言（文件后缀），如 cpp/c/py");
-    help_view_print_help_option("",                     NULL,      "不指定则使用 default_language 配置项");
-    help_view_print_help_option("-y, --yes",            NULL,      "非交互模式，缺少必填字段时直接失败\n");
+    help_view_print_help_option("-h, --help",       NULL,        "显示此帮助信息");
+    help_view_print_help_option("-t, --title",      "<str>" ,    "题目标题，必填或交互输入");
+    help_view_print_help_option("-D, --desc",       "<str>",     "题目描述");
+    help_view_print_help_option("-d, --diff",       "<diff>",    "题目难度 [0:未知/1:简单/2:中等/3:困难/4:极难]");
+    help_view_print_help_option("-m, --mastery",    "<mastery>", "掌握程度 [0:未知/1:了解/2:熟悉/3:掌握/4:精通]");
+    help_view_print_help_option("-g, --tags",       "<tag,...>", "题目标签，最多 8 个");
+    help_view_print_help_option("-n, --notes",      "<str>",     "题目笔记");
+    help_view_print_help_option("-c, --create",     NULL,        "无需源文件，自动创建");
+    help_view_print_help_option("-l, --lang",       "<str>",     "显式指定编程语言 (文件后缀)，如 cpp/c/py");
+    help_view_print_help_option("",                 NULL,        "不指定则使用 default_language 配置项");
+    help_view_print_help_option("-y, --yes",        NULL,        "非交互模式，缺少必填字段时直接失败\n");
     help_view_print_help_section("示例:");
     help_view_print_help_example("algo add solution.c -t 两数之和 -d 中等 -m 掌握 -g array,hash -y");
     help_view_print_help_example("algo add -c -t 新题 -d 简单");

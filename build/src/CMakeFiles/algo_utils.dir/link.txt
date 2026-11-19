@@ -1,0 +1,2 @@
+/usr/bin/ar qc ../lib/libalgo_utils.a CMakeFiles/algo_utils.dir/utils/utils_compat.c.o CMakeFiles/algo_utils.dir/utils/utils_time.c.o CMakeFiles/algo_utils.dir/utils/utils_str.c.o CMakeFiles/algo_utils.dir/utils/utils_fs.c.o
+/usr/bin/ranlib ../lib/libalgo_utils.a

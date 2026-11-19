@@ -13,14 +13,18 @@
 
 #include <algorepo/core/problem_types.h>
 
+
 /* --- Path Constants ------------------------------------------------------- */
 
 /* 元数据目录名 */
 #define ALGO_META_DIR          ".algorepo"
+
 /* 数据库文件名 */
 #define ALGO_DB_FILENAME       "repo.db"
+
 /* 配置文件名 */
 #define ALGO_CONFIG_FILENAME   "config.ini"
+
 /* 题解源码存放目录名 */
 #define ALGO_SOLUTIONS_DIR     "solutions"
 
@@ -41,6 +45,7 @@ typedef struct {
     char solutions_path[ALGO_MAX_PATH_LEN]; ///< 题解目录路径，空字符串=使用默认
 } AlgoConfig;
 
+
 /* --- 生命周期 --------------------------------------------------------- */
 
 /**
@@ -54,6 +59,7 @@ void config_init(AlgoConfig *cfg);
  * 本地配置继承全局时使用此函数初始化空配置。
  */
 void config_init_empty(AlgoConfig *cfg);
+
 
 /* --- 校验与持久化 --------------------------------------------------- */
 
@@ -93,6 +99,7 @@ AlgoStatus config_save(const AlgoConfig *cfg, const char *filepath);
  * - ALGO_ERR_FORMAT 文件格式非法。
  */
 AlgoStatus config_load(AlgoConfig *cfg, const char *filepath);
+
 
 /* --- 合并 --------------------------------------------------------------- */
 

@@ -15,7 +15,6 @@
 
 #include <algorepo/console/console_ui.h>
 
-#include "command.h"
 #include "command_common.h"
 #include "views/problem_view.h"
 
@@ -45,7 +44,7 @@ void help_list(void) {
     help_view_print_help_option("    --recent",      "<days>",  "最近 N 天内操作过的\n");
     help_view_print_help_section("示例:");
     help_view_print_help_example("algo ls 1");
-    help_view_print_help_example("algo ls -d easy");
+    help_view_print_help_example("algo ls -d 容易");
     help_view_print_help_example("algo ls --today");
 }
 
@@ -72,7 +71,7 @@ AlgoStatus cmd_list(int argc, char *argv[], RuntimeContext *ctx) {
         switch (c) {
             case 'g': tag = optarg; break;
             case 'd': if (parse_difficulty(optarg, &diff) != ALGO_SUCCESS) { console_log_error("无效难度"); return ALGO_ERR_ARG; } break;
-            case 'm': if (parse_int_arg(optarg, 0, 4, &mastery) != ALGO_SUCCESS) { console_log_error("无效掌握度"); return ALGO_ERR_ARG; } break;
+            case 'm': if (parse_mastery(optarg, &mastery) != ALGO_SUCCESS) { console_log_error("无效掌握度: %s，请使用 0-4 或中文名称", optarg); return ALGO_ERR_ARG; } break;
             case 's': sort_str = optarg; break;
             case 'n': if (parse_int_arg(optarg, 1, 10000, &limit) != ALGO_SUCCESS) { console_log_error("无效 limit"); return ALGO_ERR_ARG; } break;
             case 't': show_time = true; break;

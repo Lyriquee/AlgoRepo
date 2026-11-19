@@ -15,7 +15,6 @@
 #include <algorepo/service/problem_query.h>
 #include <algorepo/utils/utils_str.h>
 
-#include "command.h"
 #include "command_common.h"
 #include "views/problem_view.h"
 
@@ -46,15 +45,9 @@ void help_tag(void) {
     help_view_print_help_section("选项:");
     help_view_print_help_option("-h, --help",    NULL,          "显示此帮助信息\n");
     help_view_print_help_section("示例:");
-    help_view_print_help_example("algo tag");
     help_view_print_help_example("algo tag array");
-    help_view_print_help_example("algo tag a 1 dp");
-    help_view_print_help_example("algo tag r 1 hard");
-    help_view_print_help_example("algo tag s 2 math string");
-    help_view_print_help_example("algo tag c 100");
-    help_view_print_help_example("algo tag sh 50");
+    help_view_print_help_example("algo tag add 1 dp");
     help_view_print_help_example("algo tag mv ptr two-ptr");
-    help_view_print_help_example("algo tag delete temp");
 }
 
 /* tag 命令入口：根据 action 参数分发到对应的处理逻辑 */
@@ -70,17 +63,23 @@ AlgoStatus cmd_tag(int argc, char *argv[], RuntimeContext *ctx) {
         if (argc < 4) { console_log_error("用法: algo tag add <id>[,<id>...] <tag>"); return ALGO_ERR_REQUIRED; }
         int ids[256], n = 0;
         if (parse_comma_ids(argv[2], ids, &n, 256) != ALGO_SUCCESS) return ALGO_ERR_ARG;
-        int added = 0, skipped = 0;
+        int added = 0, skipped[256], ns = 0;
         for (int i = 0; i < n; i++) {
             Problem *p = pcol_get_by_id(&ctx->pcol, ids[i]);
             if (!p) { console_log_error("题目不存在: #%d", ids[i]); continue; }
-            if (problem_has_tag(p, argv[3])) { skipped++; continue; }
+            if (problem_has_tag(p, argv[3])) { skipped[ns++] = ids[i]; continue; }
             AlgoStatus s = problem_add_tag(p, argv[3]);
             if (s != ALGO_SUCCESS) { console_log_error("#%d 添加标签失败", ids[i]); }
             else added++;
         }
         if (added > 0) console_log_success("已为 %d 道题目添加标签: %s", added, argv[3]);
-        if (skipped > 0) console_log_info("%d 道题目已存在该标签，跳过", skipped);
+        if (ns > 0) {
+            char idstr[1024] = {0};
+            int pos = 0;
+            for (int i = 0; i < ns && pos < (int)sizeof(idstr) - 8; i++)
+                pos += snprintf(idstr + pos, sizeof(idstr) - pos, "%s#%d", i > 0 ? ", " : "", skipped[i]);
+            console_log_info("info: %s 已存在该标签，跳过", idstr);
+        }
         return ALGO_SUCCESS;
     }
 
@@ -88,13 +87,22 @@ AlgoStatus cmd_tag(int argc, char *argv[], RuntimeContext *ctx) {
         if (argc < 4) { console_log_error("用法: algo tag rm <id>[,<id>...] <tag>"); return ALGO_ERR_REQUIRED; }
         int ids[256], n = 0;
         if (parse_comma_ids(argv[2], ids, &n, 256) != ALGO_SUCCESS) return ALGO_ERR_ARG;
+        int removed = 0;
         for (int i = 0; i < n; i++) {
             Problem *p = pcol_get_by_id(&ctx->pcol, ids[i]);
             if (!p) { console_log_error("题目不存在: #%d", ids[i]); continue; }
             AlgoStatus s = problem_remove_tag(p, argv[3]);
-            if (s != ALGO_SUCCESS) { console_log_error("#%d 移除标签失败", ids[i]); }
+            if (s != ALGO_SUCCESS) {
+                console_log_error("#%d 移除标签失败", ids[i]);
+            } else {
+                removed++;
+            }
         }
-        console_log_success("已从 %d 道题目移除标签: %s", n, argv[3]);
+        if (removed == 0) {
+            console_log_error("未能从任何题目移除标签 '%s'", argv[3]);
+        } else {
+            console_log_success("已从 %d 道题目移除标签: %s", removed, argv[3]);
+        }
         return ALGO_SUCCESS;
     }
 
@@ -102,6 +110,16 @@ AlgoStatus cmd_tag(int argc, char *argv[], RuntimeContext *ctx) {
         if (argc < 3) { console_log_error("用法: algo tag set <id>[,<id>...] <tags...>"); return ALGO_ERR_REQUIRED; }
         int ids[256], n = 0;
         if (parse_comma_ids(argv[2], ids, &n, 256) != ALGO_SUCCESS) return ALGO_ERR_ARG;
+        /* 构建 ID 列表用于确认提示 */
+        char idstr[1024] = {0};
+        int pos = 0;
+        for (int i = 0; i < n && pos < (int)sizeof(idstr) - 8; i++)
+            pos += snprintf(idstr + pos, sizeof(idstr) - pos, "%s#%d", i > 0 ? ", " : "", ids[i]);
+        char prompt[1280];
+        snprintf(prompt, sizeof(prompt), "确认覆盖设置 %s 的标签?", idstr);
+        bool confirmed = false;
+        if (console_confirm(prompt, &confirmed) != ALGO_SUCCESS || !confirmed) return ALGO_SUCCESS;
+        int updated = 0;
         for (int i = 0; i < n; i++) {
             Problem *p = pcol_get_by_id(&ctx->pcol, ids[i]);
             if (!p) { console_log_error("题目不存在: #%d", ids[i]); continue; }
@@ -111,8 +129,9 @@ AlgoStatus cmd_tag(int argc, char *argv[], RuntimeContext *ctx) {
                 if (s == ALGO_ERR_TAG_FULL) { console_log_error("#%d 标签已满", ids[i]); break; }
                 if (s != ALGO_SUCCESS) { console_log_error("#%d 标签设置失败", ids[i]); break; }
             }
+            updated++;
         }
-        console_log_success("已更新 %d 道题目标签", n);
+        if (updated > 0) console_log_success("已更新 %d 道题目标签", updated);
         return ALGO_SUCCESS;
     }
 
@@ -120,12 +139,26 @@ AlgoStatus cmd_tag(int argc, char *argv[], RuntimeContext *ctx) {
         if (argc < 3) { console_log_error("用法: algo tag clear <id>[,<id>...]"); return ALGO_ERR_REQUIRED; }
         int ids[256], n = 0;
         if (parse_comma_ids(argv[2], ids, &n, 256) != ALGO_SUCCESS) return ALGO_ERR_ARG;
+        /* 构建 ID 列表用于确认提示 */
+        char idstr[1024] = {0};
+        int pos = 0;
+        for (int i = 0; i < n && pos < (int)sizeof(idstr) - 8; i++)
+            pos += snprintf(idstr + pos, sizeof(idstr) - pos, "%s#%d", i > 0 ? ", " : "", ids[i]);
+        char prompt[1280];
+        snprintf(prompt, sizeof(prompt), "确认清空 %s 的所有标签?", idstr);
+        bool confirmed = false;
+        if (console_confirm(prompt, &confirmed) != ALGO_SUCCESS || !confirmed) return ALGO_SUCCESS;
+        int cleared = 0;
         for (int i = 0; i < n; i++) {
             Problem *p = pcol_get_by_id(&ctx->pcol, ids[i]);
             if (!p) { console_log_error("题目不存在: #%d", ids[i]); continue; }
-            memset(p->tags, 0, sizeof(p->tags)); p->tag_count = 0;
+            if (p->tag_count > 0) {
+                memset(p->tags, 0, sizeof(p->tags)); p->tag_count = 0;
+                cleared++;
+            }
         }
-        console_log_success("已清空 %d 道题目的所有标签", n);
+        if (cleared > 0) console_log_success("已清空 %d 道题目的所有标签", cleared);
+        else console_log_info("所有目标题目已无标签，无需清空");
         return ALGO_SUCCESS;
     }
 
@@ -153,15 +186,57 @@ AlgoStatus cmd_tag(int argc, char *argv[], RuntimeContext *ctx) {
 
     if (strcmp(action, "rename") == 0 || strcmp(action, "mv") == 0) {
         if (argc < 4) { console_log_error("用法: algo tag rename <old> <new>"); return ALGO_ERR_REQUIRED; }
+        /* 先统计受影响的题目 */
+        int affected[256], na = 0;
+        for (size_t i = 0; i < ctx->pcol.size && na < 256; i++) {
+            if (problem_has_tag(&ctx->pcol.items[i], argv[2]))
+                affected[na++] = ctx->pcol.items[i].id;
+        }
+        if (na == 0) {
+            console_log_error("标签 '%s' 不存在于任何题目中", argv[2]);
+            return ALGO_ERR_NOT_FOUND;
+        }
+        /* 构建 ID 列表字符串 */
+        char idstr[1024] = {0};
+        int pos = 0;
+        for (int i = 0; i < na && pos < (int)sizeof(idstr) - 8; i++)
+            pos += snprintf(idstr + pos, sizeof(idstr) - pos, "%s#%d", i > 0 ? ", " : "", affected[i]);
+        /* 确认提示 */
+        char prompt[1408];
+        snprintf(prompt, sizeof(prompt), "确认将标签 '%s' 重命名为 '%s'? (影响 %d 题: %s)", argv[2], argv[3], na, idstr);
+        bool confirmed = false;
+        if (console_confirm(prompt, &confirmed) != ALGO_SUCCESS || !confirmed) return ALGO_SUCCESS;
         AlgoStatus s = do_tag_rename(&ctx->pcol, argv[2], argv[3]);
         if (s != ALGO_SUCCESS) return s;
+        console_log_success("已重命名: '%s' -> '%s' (%d 题: %s)", argv[2], argv[3], na, idstr);
         return ALGO_SUCCESS;
     }
 
     if (strcmp(action, "delete") == 0 || strcmp(action, "purge") == 0) {
         if (argc < 3) { console_log_error("用法: algo tag delete <tag>"); return ALGO_ERR_REQUIRED; }
+        /* 先统计受影响的题目 */
+        int affected[256], na = 0;
+        for (size_t i = 0; i < ctx->pcol.size && na < 256; i++) {
+            if (problem_has_tag(&ctx->pcol.items[i], argv[2]))
+                affected[na++] = ctx->pcol.items[i].id;
+        }
+        if (na == 0) {
+            console_log_error("标签 '%s' 不存在于任何题目中", argv[2]);
+            return ALGO_ERR_NOT_FOUND;
+        }
+        /* 构建 ID 列表字符串 */
+        char idstr[1024] = {0};
+        int pos = 0;
+        for (int i = 0; i < na && pos < (int)sizeof(idstr) - 8; i++)
+            pos += snprintf(idstr + pos, sizeof(idstr) - pos, "%s#%d", i > 0 ? ", " : "", affected[i]);
+        /* 确认提示 */
+        char prompt[1408];
+        snprintf(prompt, sizeof(prompt), "确认全局删除标签 '%s'? (影响 %d 题: %s)", argv[2], na, idstr);
+        bool confirmed = false;
+        if (console_confirm(prompt, &confirmed) != ALGO_SUCCESS || !confirmed) return ALGO_SUCCESS;
         AlgoStatus s = do_tag_delete(&ctx->pcol, argv[2]);
         if (s != ALGO_SUCCESS) return s;
+        console_log_success("已删除标签 '%s' (%d 题: %s)", argv[2], na, idstr);
         return ALGO_SUCCESS;
     }
 
@@ -219,32 +294,25 @@ static AlgoStatus do_tag_list(RuntimeContext *ctx, const char *filter_tag) {
     return ALGO_SUCCESS;
 }
 
-/* 全局重命名标签：遍历所有题目，将匹配的标签名替换为新名称 */
+/* 全局重命名标签：遍历所有题目，将匹配的标签名替换为新名称（静默，输出由调用者负责） */
 static AlgoStatus do_tag_rename(ProblemCollection *pcol, const char *old_name, const char *new_name) {
-    size_t renamed = 0;
     for (size_t i = 0; i < pcol->size; i++) {
         Problem *p = &pcol->items[i];
         for (size_t j = 0; j < p->tag_count; j++) {
             if (strcmp(p->tags[j], old_name) == 0) {
                 utils_strcpy_safe(p->tags[j], new_name, ALGO_MAX_TAG_LEN);
-                renamed++;
             }
         }
     }
-    console_log_success("已重命名: \"%s\" -> \"%s\" (%llu 题)",
-                        old_name, new_name, (unsigned long long)renamed);
     return ALGO_SUCCESS;
 }
 
-/* 全局删除标签：遍历所有题目，移除匹配的标签 */
+/* 全局删除标签：遍历所有题目，移除匹配的标签（静默，输出由调用者负责） */
 static AlgoStatus do_tag_delete(ProblemCollection *pcol, const char *tag) {
-    size_t deleted = 0;
     for (size_t i = 0; i < pcol->size; i++) {
         Problem *p = &pcol->items[i];
-        if (problem_remove_tag(p, tag) == ALGO_SUCCESS) deleted++;
+        problem_remove_tag(p, tag);
     }
-    console_log_success("已删除标签 \"%s\" (%llu 题)",
-                        tag, (unsigned long long)deleted);
     return ALGO_SUCCESS;
 }
 

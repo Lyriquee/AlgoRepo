@@ -1,0 +1,2 @@
+/usr/bin/ar qc ../lib/libalgo_storage.a CMakeFiles/algo_storage.dir/storage/storage.c.o CMakeFiles/algo_storage.dir/storage/storage_file.c.o
+/usr/bin/ranlib ../lib/libalgo_storage.a

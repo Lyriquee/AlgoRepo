@@ -15,11 +15,11 @@
 
 #include <algorepo/console/console_ui.h>
 #include <algorepo/service/problem_service.h>
+#include <algorepo/utils/utils_compat.h>
 #include <algorepo/utils/utils_time.h>
 #include <algorepo/utils/utils_str.h>
 #include <algorepo/utils/utils_fs.h>
 
-#include "command.h"
 #include "command_common.h"
 #include "views/problem_view.h"
 #include "views/wizard_view.h"
@@ -98,7 +98,7 @@ AlgoStatus cmd_edit(int argc, char *argv[], RuntimeContext *ctx) {
         // 标题
         console_print_newline();
         console_print_primary("题目标题：\n");
-        console_print_prompt("> ");
+        console_print_prompt("❯ ");
         if (console_input_string("", buf, sizeof(buf)) != ALGO_SUCCESS) return ALGO_ERR_EOF;
         if (buf[0]) {
             AlgoStatus st2 = service_update_title(ctx, id, buf);
@@ -106,10 +106,25 @@ AlgoStatus cmd_edit(int argc, char *argv[], RuntimeContext *ctx) {
             changed = true;
         }
 
+        // 描述
+        {
+            char desc_buf[ALGO_MAX_DESC_LEN] = {0};
+            utils_strcpy_safe(desc_buf, p->desc, sizeof(desc_buf));
+            AlgoStatus ds = wizard_input_text_field("题目描述", desc_buf,
+                                                     sizeof(desc_buf),
+                                                     ALGO_MAX_DESC_LEN - 2, ctx);
+            if (ds == ALGO_ERR_EOF) return ds;
+            if (ds == ALGO_SUCCESS && desc_buf[0] &&
+                strcmp(desc_buf, p->desc) != 0) {
+                utils_strcpy_safe(p->desc, desc_buf, sizeof(p->desc));
+                changed = true;
+            }
+        }
+
         // 难度
         console_print_newline();
         print_difficulty_menu();
-        console_print_prompt("> ");
+        console_print_prompt("❯ ");
         if (console_input_string("", buf2, sizeof(buf2)) == ALGO_SUCCESS && buf2[0]) {
             int v; if (parse_difficulty(buf2, &v) == ALGO_SUCCESS) { service_update_difficulty(ctx, id, (Difficulty)v); changed = true; }
         }
@@ -117,7 +132,7 @@ AlgoStatus cmd_edit(int argc, char *argv[], RuntimeContext *ctx) {
         // 掌握度
         console_print_newline();
         print_mastery_menu();
-        console_print_prompt("> ");
+        console_print_prompt("❯ ");
         if (console_input_string("", buf2, sizeof(buf2)) == ALGO_SUCCESS && buf2[0]) {
             int v; if (parse_mastery(buf2, &v) == ALGO_SUCCESS) { service_update_mastery(ctx, id, (Mastery)v); changed = true; }
         }
@@ -125,26 +140,44 @@ AlgoStatus cmd_edit(int argc, char *argv[], RuntimeContext *ctx) {
         // 标签
         console_print_newline();
         console_print_primary("题目标签 (逗号分隔): \n");
-        console_print_prompt("> ");
+        console_print_prompt("❯ ");
         if (console_input_string("", buf, sizeof(buf)) != ALGO_SUCCESS) return ALGO_ERR_EOF;
         if (buf[0]) { memset(p->tags, 0, sizeof(p->tags)); p->tag_count = 0; problem_parse_tags(p, buf); changed = true; }
 
         // 笔记
-        console_print_newline();
-        console_print_primary("题目笔记：\n");
-        console_print_prompt("> ");
-        if (console_input_string("", buf, sizeof(buf)) != ALGO_SUCCESS) return ALGO_ERR_EOF;
-        if (buf[0]) { service_update_notes(ctx, id, buf); changed = true; }
+        {
+            char notes_buf[ALGO_MAX_NOTES_LEN] = {0};
+            utils_strcpy_safe(notes_buf, p->notes, sizeof(notes_buf));
+            AlgoStatus ns = wizard_input_text_field("题目笔记", notes_buf,
+                                                     sizeof(notes_buf),
+                                                     ALGO_MAX_NOTES_LEN - 2, ctx);
+            if (ns == ALGO_ERR_EOF) return ns;
+            if (ns == ALGO_SUCCESS && notes_buf[0] &&
+                strcmp(notes_buf, p->notes) != 0) {
+                service_update_notes(ctx, id, notes_buf);
+                changed = true;
+            }
+        }
     }
 
     if (!changed && !interactive) {
         // 默认：用编辑器打开源码
-        if (p->solution_path[0] && utils_file_exists(p->solution_path) && ctx->config.editor[0]) {
-            char cmd[ALGO_MAX_PATH_LEN * 2 + 64];
-            snprintf(cmd, sizeof(cmd), "%s \"%s\"", ctx->config.editor, p->solution_path);
-            system(cmd);
+        if (p->solution_path[0] == '\0') {
+            console_log_info("该题目未关联源码文件，使用 -i 交互编辑元数据");
+        } else if (!utils_file_exists(p->solution_path)) {
+            console_log_warn("源码文件不存在: %s", p->solution_path);
+        } else if (ctx->config.editor[0] == '\0') {
+            console_log_warn("未配置编辑器，请通过 \"algo config set editor <命令>\" 设置，"
+                             "或使用 -i 交互编辑元数据");
         } else {
-            console_log_info("使用 -i 交互编辑元数据");
+            AlgoStatus es = utils_compat_open_editor(ctx->config.editor, p->solution_path);
+            if (es == ALGO_ERR_NOT_FOUND) {
+                console_log_warn("未找到编辑器 \"%s\"，请通过 \"algo config set editor <命令>\" 设置",
+                                 ctx->config.editor);
+            } else if (es != ALGO_SUCCESS) {
+                console_log_warn("编辑器返回异常状态，请检查编辑器命令是否正确: %s",
+                                 ctx->config.editor);
+            }
         }
     }
 

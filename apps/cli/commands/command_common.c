@@ -20,10 +20,6 @@
 #include <algorepo/utils/utils_time.h>
 
 
-/* ==========================================================================
- *  getopt 错误处理
- * ========================================================================== */
-
 /* 统一的 getopt 错误处理：区分未知选项和缺少参数 */
 AlgoStatus handle_getopt_error(int optopt, const char *optstring, char *argv[], int optind) {
     if (optopt) {
@@ -38,10 +34,6 @@ AlgoStatus handle_getopt_error(int optopt, const char *optstring, char *argv[], 
     return ALGO_ERR_ARG;
 }
 
-
-/* ==========================================================================
- *  整数解析
- * ========================================================================== */
 
 /* 解析整数参数，检查范围 [min, max] */
 AlgoStatus parse_int_arg(const char *text, int min, int max, int *out) {
@@ -62,11 +54,6 @@ AlgoStatus parse_int_arg(const char *text, int min, int max, int *out) {
 AlgoStatus parse_id_arg(const char *text, int *out) {
     return parse_int_arg(text, 1, 2147483647, out);
 }
-
-
-/* ==========================================================================
- *  中文枚举字符串解析
- * ========================================================================== */
 
 /* 解析中文难度字符串，返回 0-4 或 -1 */
 int parse_difficulty_chinese(const char *s) {
@@ -95,7 +82,7 @@ int parse_mastery_chinese(const char *s) {
     if (strcmp(s, "熟悉") == 0) return 2;
     if (strcmp(s, "掌握") == 0) return 3;
     if (strcmp(s, "精通") == 0) return 4;
-    if (strcmp(s, "未知") == 0 || strcmp(s, "未设置") == 0) return 0;
+    if (strcmp(s, "未知") == 0) return 0;
 
     return -1;
 }
@@ -117,11 +104,6 @@ AlgoStatus parse_mastery(const char *text, int *out) {
     *out = v;
     return ALGO_SUCCESS;
 }
-
-
-/* ==========================================================================
- *  通用字符串工具
- * ========================================================================== */
 
 /* 打印操作失败的状态信息 */
 void print_status_error(const char *action, AlgoStatus status) {
@@ -146,11 +128,6 @@ char *stristr(const char *h, const char *n) {
     return NULL;
 }
 
-
-/* ==========================================================================
- *  逗号分隔 ID 列表解析
- * ========================================================================== */
-
 /* 解析逗号分隔的 ID 列表，如 "1,2,3" */
 AlgoStatus parse_comma_ids(const char *s, int *ids, int *count, int max) {
     *count = 0;
@@ -166,11 +143,6 @@ AlgoStatus parse_comma_ids(const char *s, int *ids, int *count, int max) {
     }
     return *count > 0 ? ALGO_SUCCESS : ALGO_ERR_ARG;
 }
-
-
-/* ==========================================================================
- *  时间匹配谓词
- * ========================================================================== */
 
 /* 判断指定 Unix 时间戳是否属于今天 */
 bool match_today(int64_t date) {

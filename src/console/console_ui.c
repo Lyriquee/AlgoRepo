@@ -145,7 +145,7 @@ static const char *console_role_color(ConsoleColorRole role) {
         case COLOR_ROLE_EXTREME:   return CONSOLE_COLOR_BRIGHT_MAGENTA;
         case COLOR_ROLE_SPECIAL:   return CONSOLE_COLOR_BRIGHT_MAGENTA;
         case COLOR_ROLE_DIVIDER:   return CONSOLE_COLOR_GRAY;
-        case COLOR_ROLE_PROMPT:    return CONSOLE_COLOR_BRIGHT_CYAN;
+        case COLOR_ROLE_PROMPT:    return CONSOLE_COLOR_BRIGHT_GREEN;
         case COLOR_ROLE_BAR_FILL:  return CONSOLE_COLOR_BRIGHT_BLUE;
         case COLOR_ROLE_BAR_EMPTY:        return CONSOLE_COLOR_GRAY;
         case COLOR_ROLE_MASTERY_NONE:     return CONSOLE_COLOR_GRAY;

@@ -30,10 +30,10 @@ void help_view_print_version(void) {
 
 /* --- 私有函数声明 ----------------------------------------------------------- */
 
-/** @brief 打印一组命令列表（标题 + 循环条目） */
+/* 打印一组命令列表（标题 + 循环条目） */
 static void help_view_print_command_group(const char *title,
-                                           int (*count_fn)(void),
-                                           const Command *(*get_fn)(int));
+                                          int (*count_fn)(void),
+                                          const Command *(*get_fn)(int));
 
 
 /* --- 横幅与主帮助 ----------------------------------------------------------- */
@@ -54,12 +54,12 @@ void help_view_print_main(void) {
 
     // 核心命令列表
     help_view_print_command_group("核心命令:", command_core_count,
-                                   command_core_get);
+                                  command_core_get);
 
     // REPL 专属命令列表
     console_print_newline();
     help_view_print_command_group("REPL 专属命令:", command_repl_count,
-                                   command_repl_get);
+                                  command_repl_get);
 
     // 全局选项
     console_print_newline();
@@ -131,7 +131,7 @@ void help_view_print_help_option(const char *flags, const char *param,
     }
     int used = 2 + (int)strlen(flags) +
                (param && param[0] ? 1 + (int)strlen(param) : 0);
-    int pad = 32 - used;
+    int pad  = 32 - used;
     if (pad < 1) pad = 1;
     console_print_spaces(pad);
     console_print_role(COLOR_ROLE_DESC, "%s\n", desc);
@@ -152,8 +152,8 @@ void help_view_print_help_example(const char *example) {
 
 /* 打印一组命令列表 */
 static void help_view_print_command_group(const char *title,
-                                           int (*count_fn)(void),
-                                           const Command *(*get_fn)(int)) {
+                                          int (*count_fn)(void),
+                                          const Command *(*get_fn)(int)) {
     int count = count_fn();
     if (count == 0) return;
     console_print_title(title);

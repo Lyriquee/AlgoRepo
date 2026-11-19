@@ -140,7 +140,7 @@ typedef enum {
     COLOR_ROLE_PROMPT,       ///< 交互提示符
     COLOR_ROLE_BAR_FILL,     ///< 统计条填充
     COLOR_ROLE_BAR_EMPTY,    ///< 统计条空位
-    COLOR_ROLE_MASTERY_NONE,     ///< 深灰色 — 未设置
+    COLOR_ROLE_MASTERY_NONE,     ///< 深灰色 — 未知
     COLOR_ROLE_MASTERY_LEARNING, ///< 浅蓝色 — 了解
     COLOR_ROLE_MASTERY_FAMILIAR, ///< 标准蓝色 — 熟悉
     COLOR_ROLE_MASTERY_MASTERED, ///< 深蓝色 — 掌握

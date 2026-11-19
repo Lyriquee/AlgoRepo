@@ -29,7 +29,7 @@ add_library(algo_cli STATIC
 )
 
 target_compile_definitions(algo_cli PRIVATE
-    ALGO_CLI_VERSION="1.0.0"
+    ALGO_CLI_VERSION="1.1.0"
 )
 
 target_link_libraries(algo_cli PUBLIC algo::service algo::console)

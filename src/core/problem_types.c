@@ -9,9 +9,6 @@
 #include <algorepo/core/problem_types.h>
 
 
-/* --- 私有函数声明 --------------------------------------------------------- */
-
-
 /* --- 公开接口实现 --------------------------------------------------------- */
 
 /* 将 AlgoStatus 枚举转换为中文描述字符串 */
@@ -62,9 +59,6 @@ const char *algo_mastery_to_string(Mastery mastery) {
         case ALGO_MASTERY_FAMILIAR: return "熟悉";
         case ALGO_MASTERY_MASTERED: return "掌握";
         case ALGO_MASTERY_EXPERT:   return "精通";
-        default:                    return "未设置";
+        default:                    return "未知";
     }
 }
-
-
-/* --- 私有函数实现 --------------------------------------------------------- */

@@ -64,13 +64,14 @@ void repl_view_print_banner(const RuntimeContext *ctx) {
     console_print_muted("  提示:\n");
     console_print_muted("    help / h    查看命令帮助\n");
     console_print_muted("    exit / q    保存并退出\n");
+    console_print_muted("    !<cmd>      执行系统命令 (如 !ls)\n");
     console_print_divider();
 }
 
 /* 打印 REPL 提示符 */
 void repl_view_print_prompt(const RuntimeContext *ctx, int last_status) {
     if (ctx->no_color) {
-        console_print_text("algo>\n");
+        console_print_text("algo❯ ");
         fflush(stdout);
         return;
     }
@@ -83,9 +84,9 @@ void repl_view_print_prompt(const RuntimeContext *ctx, int last_status) {
 
     // 上次命令状态决定提示符颜色
     if (last_status == ALGO_SUCCESS)
-        console_print_success("> ");
+        console_print_success("❯ ");
     else
-        console_print_error_raw("> ");
+        console_print_error_raw("❯ ");
 
     fflush(stdout);
 }
